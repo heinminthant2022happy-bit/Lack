@@ -41,20 +41,18 @@ go build
 cp dnstt-server /usr/local/bin/dnstt-server
 chmod +x /usr/local/bin/dnstt-server
 
-# 4. Generate Crypto Keys
+# 4. Generate Crypto Keys (New Version Syntax)
 echo -e "${YELLOW}[*] Generating DNSTT Crypto Keys...${NC}"
 cd /usr/local/bin
 rm -f server.key server.pub
-dnstt-server -gen-key -key server.key -pub server.pub
+dnstt-server -gen-key -privkey-file server.key -pubkey-file server.pub
 
 PUB_KEY=$(cat server.pub)
 
 # 5. Configure Firewall (IPTables Forwarding)
-# Port 53 (DNS) standard redirection to DNSTT incoming port (e.g., 8530)
 echo -e "${YELLOW}[*] Configuring Firewall & Port Forwarding...${NC}"
 iptables -I INPUT -p udp --dport 53 -j ACCEPT
 iptables -t nat -I PREROUTING -i eth0 -p udp --dport 53 -j REDIRECT --to-ports 8530
-# IPv6 (Optional but safe)
 ip6tables -I INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null
 ip6tables -t nat -I PREROUTING -i eth0 -p udp --dport 53 -j REDIRECT --to-ports 8530 2>/dev/null
 
@@ -62,7 +60,7 @@ ip6tables -t nat -I PREROUTING -i eth0 -p udp --dport 53 -j REDIRECT --to-ports 
 apt-get install iptables-persistent -y
 netfilter-persistent save
 
-# 6. Create Systemd Service for Auto-Run
+# 6. Create Systemd Service for Auto-Run (New Version Syntax)
 echo -e "${YELLOW}[*] Creating Systemd Background Service...${NC}"
 cat <<EOF > /etc/systemd/system/dnstt.service
 [Unit]
@@ -73,7 +71,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/usr/local/bin
-ExecStart=/usr/local/bin/dnstt-server -udp 127.0.0.1:8530 -pub server.pub -key server.key $NS_DOMAIN 127.0.0.1:22
+ExecStart=/usr/local/bin/dnstt-server -udp :8530 -privkey-file server.key \$NS_DOMAIN 127.0.0.1:22
 Restart=always
 RestartSec=3
 
@@ -95,3 +93,4 @@ echo -e "${YELLOW}Your Public Key:${NC} $PUB_KEY"
 echo -e "${YELLOW}SSH Target Port:${NC} 22 (Default Local SSH)"
 echo -e "${GREEN}=======================================${NC}"
 echo -e "You can now use this Public Key and NS Domain in your tunnel clients."
+
