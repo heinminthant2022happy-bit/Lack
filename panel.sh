@@ -82,7 +82,7 @@ create_account() {
 }
 
 # --------------------------------------------------------------------
-# 2. ACCOUNT TRAFFIC & STATUS MONITOR
+# 2. ACCOUNT TRAFFIC & STATUS MONITOR (FIXED UI BUG)
 # --------------------------------------------------------------------
 monitor_accounts() {
     echo -e "${YELLOW}=======================================================================${NC}"
@@ -97,25 +97,27 @@ monitor_accounts() {
         while IFS='|' read -r user pass exp gb speed; do
             [ -z "$user" ] && continue
             
-            # 1. Check if user is actively logged in via SSH
+            # Check Active Online Count
             online_count=$(ps aux | grep sshd | grep "$user" | grep -v grep | wc -l)
             if [ "$online_count" -gt 0 ]; then
-                online_status="${GREEN}$online_count Active${NC}"
+                online_status="$online_count Active"
+                status_color=$GREEN
             else
-                online_status="${RED}Offline${NC}"
+                online_status="Offline"
+                status_color=$RED
             fi
 
-            # 2. Extract Byte logs from IPTables and convert to GB
+            # Extract Traffic
             bytes=$(iptables -L -n -v -x | grep "vpngb_$user" | awk '{sum+=$2} END {print sum}')
             [ -z "$bytes" ] && bytes=0
             usage=$(awk "BEGIN {printf \"%.2f GB\", $bytes/1073741824}")
 
-            # Dynamic text for quota and speed constraints
             sp_text="${speed} Mbps"
             [ "$speed" -eq 0 ] && sp_text="Max Speed"
             [ "$gb" -gt 0 ] && usage="$usage / ${gb}GB"
 
-            printf "%-15s | %-22s | %-15s | %-12s\n" "$user" "$online_status" "$usage" "$sp_text"
+            # Formatted Output using standard dynamic colors inside printf
+            printf "%-15s | %b%-12s%b | %-15s | %-12s\n" "$user" "$status_color" "$online_status" "$NC" "$usage" "$sp_text"
         done < $DB_USERS
     fi
     echo -e "-----------------------------------------------------------------------"
@@ -146,20 +148,19 @@ delete_account() {
 # --------------------------------------------------------------------
 # 4. BACKGROUND SYSTEM DAEMON LOGIC
 # --------------------------------------------------------------------
-# This runs invisibly in the script loop to lock overused or expired users.
 run_enforcement() {
     [ ! -s $DB_USERS ] && return
     while IFS='|' read -r user pass exp gb speed; do
         [ -z "$user" ] && continue
         
-        # 1. Apply Dynamic Traffic Shaping if speed limit exists
+        # Apply Dynamic Traffic Shaping if speed limit exists
         if [ "$speed" -gt 0 ] && [ "$NET_INT" != "" ]; then
             let kbps=$speed*1024
             wondershaper clear $NET_INT &>/dev/null
             wondershaper $NET_INT $kbps $kbps &>/dev/null
         fi
 
-        # 2. Check Data Quota Breach
+        # Check Data Quota Breach
         bytes=$(iptables -L -n -v -x | grep "vpngb_$user" | awk '{sum+=$2} END {print sum}')
         [ -z "$bytes" ] && bytes=0
         let current_gb=$bytes/1073741824
